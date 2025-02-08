@@ -1,0 +1,183 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from fpdf import FPDF
+
+# Load the data with error handling
+try:
+soil_data = pd.read_csv('finalsoil.csv', header=1) # Adjust header as necessary
+weather_data = pd.read_csv('finalweather.csv', header=1) # Adjust header as necessary
+except FileNotFoundError as e:
+print(f"File not found: {e}")
+exit()
+
+# Preprocess the data
+soil_data.columns = ['N', 'P', 'K', 'Crop']
+weather_data.columns = ['Crop', 'temperature', 'humidity', 'ph', 'rainfall']
+
+# Drop any rows with missing or invalid data
+soil_data = soil_data.dropna()
+weather_data = weather_data.dropna()
+
+# Merging the datasets
+merged_data = pd.merge(soil_data, weather_data, on='Crop')
+
+if merged_data.empty:
+print("No data available for the specified criteria.")
+exit()
+
+# Prepare data for yield prediction using specified feature columns
+feature_columns = ['N', 'P', 'K', 'temperature', 'humidity', 'ph', 'rainfall']
+target = 'rainfall'
+
+# Ensure the target column exists and is numeric
+if target not in merged_data.columns:
+print(f"Target column '{target}' not found in the dataset.")
+exit()
+
+# Convert features to numeric
+merged_data[feature_columns] = merged_data[feature_columns].apply(pd.to_numeric,
+errors='coerce')
+merged_data = merged_data.dropna(subset=feature_columns)
+
+# Features for model training
+features = merged_data[feature_columns]
+X_train, X_test, y_train, y_test = train_test_split(features, merged_data[target],
+test_size=0.2, random_state=42)
+
+# Train the model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Get district name input from the user
+dist_name = input("Enter the District Name: ")
+
+# Calculate average yields for each crop in the specified district
+
+crop_yields =
+merged_data.groupby('Crop')[target].mean().sort_values(ascending=False).head(3)
+
+# Generate crop recommendations based on the highest average yields
+recommended_crops = crop_yields.index.tolist()
+
+# Initialize an empty list to store yields
+yields = {}
+
+# Predict yields for each recommended crop
+for crop in recommended_crops:
+crop_data = merged_data[merged_data['Crop'] == crop]
+if crop_data.empty:
+print(f"No data available for {crop}")
+yields[crop] = None
+else:
+crop_features = crop_data[feature_columns].mean().values
+predicted_yield = model.predict([crop_features])[0]
+yields[crop] = predicted_yield
+
+# Create PDF output for crop recommendations
+pdf_rec = FPDF()
+pdf_rec.add_page()
+pdf_rec.set_font("Arial", size=12)
+pdf_rec.cell(200, 10, txt=f"Top 3 Crop Recommendations for {dist_name}", ln=True)
+
+for i, crop in enumerate(recommended_crops):
+pdf_rec.cell(200, 10, txt=f"Recommended Crop {i + 1}: {crop} - Predicted Yield:
+{yields[crop]:.2f} kg/ha" if yields[crop] is not None else f"Recommended Crop {i + 1}: {crop} -
+No yield data available", ln=True)
+
+pdf_rec.output(f"Crop_Recommendations_{dist_name}.pdf")
+
+print(f"PDF generated: 'Crop_Recommendations_{dist_name}.pdf'")
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from fpdf import FPDF
+
+# Load the data with error handling
+try:
+soil_data = pd.read_csv('finalsoil.csv', header=1) # Adjust header as necessary
+weather_data = pd.read_csv('finalweather.csv', header=1) # Adjust header as necessary
+except FileNotFoundError as e:
+print(f"File not found: {e}")
+exit()
+
+# Preprocess the data
+soil_data.columns = ['N', 'P', 'K', 'Crop']
+weather_data.columns = ['Crop', 'temperature', 'humidity', 'ph', 'rainfall']
+
+# Drop any rows with missing or invalid data
+soil_data = soil_data.dropna()
+weather_data = weather_data.dropna()
+
+# Merging the datasets
+merged_data = pd.merge(soil_data, weather_data, on='Crop')
+
+if merged_data.empty:
+print("No data available for the specified criteria.")
+exit()
+
+# Prepare data for yield prediction using specified feature columns
+
+feature_columns = ['N', 'P', 'K', 'temperature', 'humidity', 'ph', 'rainfall']
+target = 'rainfall'
+
+# Ensure the target column exists and is numeric
+if target not in merged_data.columns:
+print(f"Target column '{target}' not found in the dataset.")
+exit()
+
+# Convert features to numeric
+merged_data[feature_columns] = merged_data[feature_columns].apply(pd.to_numeric,
+errors='coerce')
+merged_data = merged_data.dropna(subset=feature_columns)
+
+# Features for model training
+features = merged_data[feature_columns]
+X_train, X_test, y_train, y_test = train_test_split(features, merged_data[target],
+test_size=0.2, random_state=42)
+
+# Train the model
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+# Get district name input from the user
+dist_name = input("Enter the District Name: ")
+
+# Calculate average yields for each crop in the specified district
+crop_yields =
+merged_data.groupby('Crop')[target].mean().sort_values(ascending=False).head(3)
+
+# Generate crop recommendations based on the highest average yields
+recommended_crops = crop_yields.index.tolist()
+
+# Initialize an empty list to store yields
+
+yields = {}
+
+# Predict yields for each recommended crop
+for crop in recommended_crops:
+crop_data = merged_data[merged_data['Crop'] == crop]
+if crop_data.empty:
+print(f"No data available for {crop}")
+yields[crop] = None
+else:
+crop_features = crop_data[feature_columns].mean().values
+predicted_yield = model.predict([crop_features])[0]
+yields[crop] = predicted_yield
+
+# Create PDF output for crop recommendations
+pdf_rec = FPDF()
+pdf_rec.add_page()
+pdf_rec.set_font("Arial", size=12)
+pdf_rec.cell(200, 10, txt=f"Top 3 Crop Recommendations for {dist_name}", ln=True)
+
+for i, crop in enumerate(recommended_crops):
+pdf_rec.cell(200, 10, txt=f"Recommended Crop {i + 1}: {crop} - Predicted Yield:
+{yields[crop]:.2f} kg/ha" if yields[crop] is not None else f"Recommended Crop {i + 1}: {crop} -
+No yield data available", ln=True)
+
+pdf_rec.output(f"Crop_Recommendations_{dist_name}.pdf")
+
+print(f"PDF generated: 'Crop_Recommendations_{dist_name}.pdf'")
